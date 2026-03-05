@@ -1,33 +1,32 @@
 # BGV Request Management System
 
-A serverless Background Verification (BGV) Request Management System built with **AWS Lambda** (Java 21 Spring Boot), **React + Vite** frontend, and **AWS CDK** infrastructure-as-code.
+A Background Verification (BGV) Request Management System built with **Java 21 Spring Boot** backend, **React + Vite** frontend, and **AWS DynamoDB** for data persistence.
 
 ## Architecture
 
-**Serverless Stack:**
-- **Frontend**: React 18.2 + Vite → S3 Static Website + CloudFront CDN
-- **Backend**: Java 21 Spring Boot → AWS Lambda (ARM64 with SnapStart)
-- **API**: Amazon API Gateway (REST API with Lambda Proxy Integration)
-- **Database**: Amazon DynamoDB (4 tables with Global Secondary Indices)
-- **Infrastructure**: AWS CDK (TypeScript)
-- **Monitoring**: CloudWatch Logs, Alarms, Dashboard + SNS Alerts
+**Technology Stack:**
+- **Frontend**: React 18.2 + Vite (Standard SPA)
+- **Backend**: Java 21 Spring Boot REST API (Embedded Tomcat)
+- **Database**: AWS DynamoDB (4 tables with Global Secondary Indices)
+- **Deployment**: Standard Spring Boot deployment (Docker, EC2, ECS, Elastic Beanstalk, etc.)
 - **Optional**: SharePoint Graph API integration, OpenSearch (disabled by default)
+
+> **Note**: This is a traditional 3-tier web application. Lambda-based architecture has been removed.
 
 ## Project Structure
 
 ```
 BGV_Final/
 ├── Paramount_Project/
-│   ├── backend/                    # Java 21 Spring Boot Lambda
+│   ├── backend/                    # Java 21 Spring Boot Application
 │   │   ├── src/main/java/com/bgv/application/
-│   │   │   ├── lambda/
-│   │   │   │   └── StreamLambdaHandler.java      # Lambda entry point
+│   │   │   ├── BgvApplication.java               # Spring Boot main class
 │   │   │   ├── controller/
 │   │   │   │   └── BgvRequestController.java     # REST endpoints
 │   │   │   ├── service/
 │   │   │   │   ├── BgvRequestService.java        # Business logic
 │   │   │   │   ├── BgvRequestHistoryService.java # History tracking
-│   │   │   │   └── BgvExcelUploadService.java    # Excel processing
+│   │   │   │   └── ExcelUploadService.java       # Excel processing
 │   │   │   ├── repository/
 │   │   │   │   ├── BgvRequestRepository.java     # DynamoDB access
 │   │   │   │   ├── BgvRequestHistoryRepository.java
@@ -42,10 +41,12 @@ BGV_Final/
 │   │   │       ├── DynamoDBConfig.java           # DynamoDB client config
 │   │   │       └── OpenSearchConfig.java         # Optional search
 │   │   ├── src/main/resources/
-│   │   │   └── application.properties            # Spring Boot config
+│   │   │   ├── application.properties            # Spring Boot config
+│   │   │   └── application-prod.properties       # Production config
 │   │   ├── pom.xml                               # Maven dependencies
+│   │   ├── SPRING_BOOT_DEPLOYMENT.md             # Deployment guide
 │   │   └── target/
-│   │       └── bgv-lambda.jar                    # Lambda deployment package
+│   │       └── bgv-service.jar                   # Executable Spring Boot JAR
 │   │
 │   ├── frontend/                   # React + Vite SPA
 │   │   ├── src/
@@ -71,23 +72,10 @@ BGV_Final/
 │   │   ├── package.json
 │   │   └── dist/                                 # Production build (generated)
 │   │
-│   └── infrastructure/             # AWS CDK
-│       └── cdk/
-│           ├── lib/
-│           │   └── bgv-serverless-stack.ts       # Infrastructure definition
-│           ├── bin/
-│           │   └── app.ts                        # CDK app entry
-│           ├── cdk.json                          # Context config
-│           └── package.json
+│   └── infrastructure/             # AWS CDK (deprecated - for Lambda only)
+│       └── cdk/                    # No longer used for Spring Boot deployment
 │
-└── scripts/                        # Deployment automation
-    ├── validate-environment.cmd               # Pre-flight checks
-    ├── deploy-backend.cmd                     # Full backend deployment
-    ├── deploy-frontend.cmd                    # Frontend to S3/CloudFront
-    ├── configure-s3-cors.cmd                  # CORS policy setup
-    ├── configure-lambda-env-vars.cmd          # Verify Lambda config
-    ├── configure-cognito-urls.cmd             # (Stub - future auth)
-    └── initialize-opensearch-indices.cmd      # (Stub - optional)
+└── scripts/                        # Deployment scripts (deprecated - for Lambda only)
 ```
 
 ## Features
@@ -117,30 +105,54 @@ BGV_Final/
 - Java 21
 - Maven 3.6+
 - Spring Boot 3.1.5
+- **AWS Account** with DynamoDB access
+- **AWS CLI** configured with credentials
 
 ### Installation:
 
-1. Navigate to backend directory:
+1. Configure AWS credentials:
 ```bash
-cd backend
+aws configure
 ```
 
-2. Build the project:
+2. Navigate to backend directory:
 ```bash
-mvn clean install
+cd Paramount_Project/backend
 ```
 
-3. Run the application:
+3. Update `src/main/resources/application.properties`:
+   - Set your AWS region
+   - Configure DynamoDB table names
+   - Set CORS allowed origins for your frontend domain
+
+4. Build the project:
+```bash
+mvn clean package
+```
+
+5. Run the application:
 ```bash
 mvn spring-boot:run
+```
+
+Or run the JAR directly:
+```bash
+java -jar target/bgv-service.jar
 ```
 
 The backend will start on `http://localhost:8080`
 
 ### Database:
-- Uses H2 in-memory database for development
-- Database console available at `http://localhost:8080/h2-console`
-- JDBC URL: `jdbc:h2:mem:testdb`
+- Uses **AWS DynamoDB** for data persistence
+- Tables are automatically created on application startup
+- 4 DynamoDB tables:
+  - `LTM-mne-paramount-BgvRequests`
+  - `LTM-mne-paramount-BgvRequestHistory`
+  - `LTM-mne-paramount-BgvExcelUploadRecords`
+  - `LTM-mne-paramount-BgvExcelUploadCells`
+
+### Deployment:
+For production deployment options (Docker, AWS ECS, Elastic Beanstalk, EC2), see [SPRING_BOOT_DEPLOYMENT.md](Paramount_Project/backend/SPRING_BOOT_DEPLOYMENT.md)
 
 ## Frontend Setup
 
@@ -151,7 +163,7 @@ The backend will start on `http://localhost:8080`
 
 1. Navigate to frontend directory:
 ```bash
-cd frontend
+cd Paramount_Project/frontend
 ```
 
 2. Install dependencies:
@@ -258,16 +270,23 @@ DELETE /api/bgv-requests/{id}
 
 ### Backend:
 - **Spring Boot 3.1.5** - Web framework
-- **Spring Data JPA** - ORM
-- **H2 Database** - In-memory database
+- **AWS DynamoDB** - NoSQL database
+- **AWS SDK 2.20+** - DynamoDB enhanced client
 - **Lombok** - Boilerplate reduction
 - **Jakarta Validation** - Input validation
+- **Apache POI 5.2.5** - Excel file processing
+- **Microsoft Graph SDK** - SharePoint integration (optional)
 
 ### Frontend:
 - **React 18.2.0** - UI library
-- **Vite 5.0.0** - Build tool
+- **Vite 5.0.0** - Build tool & dev server
 - **Axios** - HTTP client
-- **CSS3** - Styling
+- **CSS3** - Styling with theme support
+
+### Infrastructure:
+- **AWS DynamoDB** - Data persistence with GSI
+- **AWS IAM** - Access management for DynamoDB
+- Standard Spring Boot deployment (no Lambda, no API Gateway)
 
 ## Development Guidelines
 
@@ -293,7 +312,11 @@ DELETE /api/bgv-requests/{id}
 ## CORS Configuration
 
 The backend is configured to accept requests from `http://localhost:5173` (frontend default port).
-To change this, modify the `@CrossOrigin` annotation in `BgvRequestController.java`.
+To change this, modify the `app.cors.allowed-origins` property in `src/main/resources/application.properties`:
+
+```properties
+app.cors.allowed-origins=http://localhost:5173,https://your-production-domain.com
+```
 
 ## Configuration Management
 
@@ -325,14 +348,15 @@ bgv.country.georegion.mapping=INDIA:INDIA,UK:EUROPE,GERMANY:EUROPE,FRANCE:EUROPE
 
 ## Future Enhancements
 
-- User authentication and authorization
-- Database migration to production database (PostgreSQL/MySQL)
-- Request tracking and status history
-- Email notifications
-- Advanced reporting and analytics
-- File upload for supporting documents
-- API rate limiting
-- Test coverage improvements
+- User authentication and authorization (AWS Cognito)
+- Advanced search with OpenSearch integration
+- Request tracking and status history improvements
+- Email/SMS notifications (AWS SES/SNS)
+- Advanced reporting and analytics dashboards
+- Enhanced file upload with S3 integration
+- API rate limiting and throttling
+- Comprehensive test coverage
+- CI/CD pipeline automation
 
 ## Troubleshooting
 
@@ -348,8 +372,19 @@ bgv.country.georegion.mapping=INDIA:INDIA,UK:EUROPE,GERMANY:EUROPE,FRANCE:EUROPE
 
 ### API connection issues:
 1. Ensure backend is running on port 8080
-2. Check CORS configuration
+2. Check CORS configuration in `application.properties`
 3. Verify endpoint URLs in `bgvService.js`
+
+### DynamoDB connection issues:
+1. Verify AWS credentials: `aws sts get-caller-identity`
+2. Check IAM permissions for DynamoDB operations
+3. Ensure AWS region matches your DynamoDB tables
+4. Check `dynamodb.endpoint` is not set (for AWS) or set to local endpoint
+
+### Build issues:
+1. Ensure Java 21 is installed: `java -version`
+2. Clean Maven cache: `mvn clean`
+3. Update dependencies: `mvn dependency:resolve`
 
 ## License
 
