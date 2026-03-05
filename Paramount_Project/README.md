@@ -1,93 +1,43 @@
 # BGV Request Management System
 
-A serverless Background Verification (BGV) Request Management System built with **AWS Lambda** (Java 21 Spring Boot), **React + Vite** frontend, and **AWS CDK** infrastructure-as-code.
-
-## Architecture
-
-**Serverless Stack:**
-- **Frontend**: React 18.2 + Vite → S3 Static Website + CloudFront CDN
-- **Backend**: Java 21 Spring Boot → AWS Lambda (ARM64 with SnapStart)
-- **API**: Amazon API Gateway (REST API with Lambda Proxy Integration)
-- **Database**: Amazon DynamoDB (4 tables with Global Secondary Indices)
-- **Infrastructure**: AWS CDK (TypeScript)
-- **Monitoring**: CloudWatch Logs, Alarms, Dashboard + SNS Alerts
-- **Optional**: SharePoint Graph API integration, OpenSearch (disabled by default)
+A comprehensive Background Verification (BGV) Request Management System built with Java Spring Boot backend and React + Vite frontend.
 
 ## Project Structure
 
 ```
-BGV_Final/
-├── Paramount_Project/
-│   ├── backend/                    # Java 21 Spring Boot Lambda
-│   │   ├── src/main/java/com/bgv/application/
-│   │   │   ├── lambda/
-│   │   │   │   └── StreamLambdaHandler.java      # Lambda entry point
-│   │   │   ├── controller/
-│   │   │   │   └── BgvRequestController.java     # REST endpoints
-│   │   │   ├── service/
-│   │   │   │   ├── BgvRequestService.java        # Business logic
-│   │   │   │   ├── BgvRequestHistoryService.java # History tracking
-│   │   │   │   └── BgvExcelUploadService.java    # Excel processing
-│   │   │   ├── repository/
-│   │   │   │   ├── BgvRequestRepository.java     # DynamoDB access
-│   │   │   │   ├── BgvRequestHistoryRepository.java
-│   │   │   │   └── BgvExcelUpload*Repository.java
-│   │   │   ├── entity/
-│   │   │   │   ├── BgvRequest.java               # Main entity
-│   │   │   │   ├── BgvRequestHistory.java        # History records
-│   │   │   │   └── BgvExcelUpload*.java          # Excel data
-│   │   │   ├── dto/
-│   │   │   │   └── BgvRequestDTO.java            # Data transfer objects
-│   │   │   └── config/
-│   │   │       ├── DynamoDBConfig.java           # DynamoDB client config
-│   │   │       └── OpenSearchConfig.java         # Optional search
-│   │   ├── src/main/resources/
-│   │   │   └── application.properties            # Spring Boot config
-│   │   ├── pom.xml                               # Maven dependencies
-│   │   └── target/
-│   │       └── bgv-lambda.jar                    # Lambda deployment package
-│   │
-│   ├── frontend/                   # React + Vite SPA
-│   │   ├── src/
-│   │   │   ├── components/
-│   │   │   │   ├── PmForm.jsx                    # Project Manager form
-│   │   │   │   ├── AdminForm.jsx                 # Admin dashboard & form
-│   │   │   │   ├── SuperAdmin.jsx                # Super Admin analytics
-│   │   │   │   ├── History.jsx                   # History search
-│   │   │   │   ├── HistoryModal.jsx              # History detail view
-│   │   │   │   ├── PmDashboard.jsx               # PM request tracker
-│   │   │   │   ├── YearlyDashboard.jsx           # Excel upload dashboard
-│   │   │   │   └── ThemeToggleButton.jsx         # Dark/Light mode
-│   │   │   ├── services/
-│   │   │   │   └── bgvService.js                 # API client
-│   │   │   ├── styles/
-│   │   │   │   ├── form.css                      # Form styling
-│   │   │   │   ├── admin-table.css               # Table styling
-│   │   │   │   ├── theme.css                     # Theme variables
-│   │   │   │   └── ltimindtree.css               # Brand styling
-│   │   │   ├── App.jsx                           # Main router
-│   │   │   └── main.jsx                          # Entry point
-│   │   ├── vite.config.js                        # Vite build config
-│   │   ├── package.json
-│   │   └── dist/                                 # Production build (generated)
-│   │
-│   └── infrastructure/             # AWS CDK
-│       └── cdk/
-│           ├── lib/
-│           │   └── bgv-serverless-stack.ts       # Infrastructure definition
-│           ├── bin/
-│           │   └── app.ts                        # CDK app entry
-│           ├── cdk.json                          # Context config
-│           └── package.json
-│
-└── scripts/                        # Deployment automation
-    ├── validate-environment.cmd               # Pre-flight checks
-    ├── deploy-backend.cmd                     # Full backend deployment
-    ├── deploy-frontend.cmd                    # Frontend to S3/CloudFront
-    ├── configure-s3-cors.cmd                  # CORS policy setup
-    ├── configure-lambda-env-vars.cmd          # Verify Lambda config
-    ├── configure-cognito-urls.cmd             # (Stub - future auth)
-    └── initialize-opensearch-indices.cmd      # (Stub - optional)
+bgv-application/
+├── backend/           # Spring Boot Application
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/bgv/application/
+│   │   │   │   ├── BgvApplication.java
+│   │   │   │   ├── entity/
+│   │   │   │   │   └── BgvRequest.java
+│   │   │   │   ├── dto/
+│   │   │   │   │   └── BgvRequestDTO.java
+│   │   │   │   ├── repository/
+│   │   │   │   │   └── BgvRequestRepository.java
+│   │   │   │   ├── service/
+│   │   │   │   │   └── BgvRequestService.java
+│   │   │   │   └── controller/
+│   │   │   │       └── BgvRequestController.java
+│   │   │   └── resources/
+│   │   │       └── application.properties
+│   └── pom.xml
+└── frontend/          # React + Vite Application
+    ├── src/
+    │   ├── components/
+    │   │   ├── PmForm.jsx
+    │   │   └── AdminForm.jsx
+    │   ├── services/
+    │   │   └── bgvService.js
+    │   ├── styles/
+    │   │   └── form.css
+    │   ├── App.jsx
+    │   └── main.jsx
+    ├── index.html
+    ├── package.json
+    └── vite.config.js
 ```
 
 ## Features
@@ -353,4 +303,4 @@ bgv.country.georegion.mapping=INDIA:INDIA,UK:EUROPE,GERMANY:EUROPE,FRANCE:EUROPE
 
 ## License
 
-This project is for internal use at MnE.
+This project is for internal use at Paramount.

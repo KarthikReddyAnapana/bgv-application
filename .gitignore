@@ -1,0 +1,28 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node.js
+node_modules/
+**/node_modules/
+dist/
+build/
+
+# Java / Maven
+target/
+**/target/
+
+# Environment / secrets
+.env
+.env.*
+
+# Local runtime artifacts
+uploads/
+**/uploads/

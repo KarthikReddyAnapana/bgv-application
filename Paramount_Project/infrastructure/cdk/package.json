@@ -1,0 +1,30 @@
+{
+  "name": "bgv-serverless-infra",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy:dev": "cdk deploy BgvServerlessDevStack",
+    "deploy:prod": "cdk deploy BgvServerlessProdStack"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.0",
+    "@types/node": "^20.0.0",
+    "aws-cdk": "^2.0.0",
+    "esbuild": "^0.25.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "aws-lambda":"^1.0.7",
+    "aws-cdk-lib": "^2.0.0",
+    "constructs": "^10.4.2",
+    "@aws-sdk/client-dynamodb": "^3.726.1",
+    "@aws-sdk/lib-dynamodb": "^3.726.1",
+    "lambda-multipart-parser": "^1.0.1",
+    "xlsx": "^0.18.5"
+  }
+}

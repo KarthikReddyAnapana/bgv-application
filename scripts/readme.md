@@ -353,4 +353,4 @@ bgv.country.georegion.mapping=INDIA:INDIA,UK:EUROPE,GERMANY:EUROPE,FRANCE:EUROPE
 
 ## License
 
-This project is for internal use at MnE.
+This project is for internal use at Paramount.

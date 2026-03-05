@@ -1,0 +1,171 @@
+BGV DEPLOY-25 (Java Lambda + DynamoDB + S3/CloudFront)
+Date: 2026-02-25
+
+This file is the single runbook to deploy the current Java-based backend and frontend.
+
+==================================================
+1) PREREQUISITES (one-time)
+==================================================
+From workspace root: BGV_Final
+
+1. Java 21 + Maven
+  - java -version   # Must be Java 21
+   - mvn -version
+
+2. Node + npm
+   - node --version
+   - npm --version
+
+3. AWS CLI + credentials profile
+   - aws --version
+   - aws configure --profile <AWS_PROFILE>
+   - aws sts get-caller-identity --profile <AWS_PROFILE>
+  - Note: deploy.js / validate-environment.cmd now auto-detect AWS CLI in standard Windows paths
+
+4. Dependencies install (if not already done)
+   - cd Paramount_Project/frontend
+   - npm install
+   - cd ../infrastructure/cdk
+   - npm install
+   - cd ../../..
+
+5. Production CDK context (mandatory for prod)
+  - Open: Paramount_Project/infrastructure/cdk/cdk.json
+  - Set context.prod.frontendDomain to exact HTTPS frontend domain (no wildcard)
+  - Set context.prod.cognitoUserPoolArn to your Cognito User Pool ARN
+  - Set context.prod.sharepointFolderUrl and context.prod.sharepointEnabled as needed
+  - (Recommended) set context.prod.alarmEmail for operational alerts
+  - Review alarm and budget thresholds in cdk.json:
+    - api5xxAlarmThreshold
+    - lambdaErrorAlarmThreshold
+    - lambdaThrottleAlarmThreshold
+    - lambdaP95DurationMsThreshold
+    - monthlyBudgetUsd
+  - Example ARN format:
+    arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_xxxxxxxx
+
+==================================================
+2) FIRST DEPLOY (new environment)
+==================================================
+From workspace root: BGV_Final
+
+Command:
+  node deploy.js --stage <dev|prod> --profile <AWS_PROFILE> --firstDeploy
+
+Example:
+  node deploy.js --stage dev --profile myawsprofile --firstDeploy
+
+What this runs automatically:
+  1. scripts/validate-environment.cmd
+  2. scripts/deploy-backend.cmd
+     - mvn clean package -DskipTests
+     - npm run build (CDK)
+     - npx cdk deploy BgvServerless<Stage>Stack
+  3. scripts/configure-lambda-env-vars.cmd
+  4. scripts/initialize-opensearch-indices.cmd (safe if skipped)
+  5. scripts/configure-s3-cors.cmd
+  6. scripts/configure-cognito-urls.cmd (safe if skipped)
+  7. scripts/deploy-frontend.cmd
+
+==================================================
+3) NORMAL REDEPLOY (after first deploy)
+==================================================
+From workspace root: BGV_Final
+
+Command:
+  node deploy.js --stage <dev|prod> --profile <AWS_PROFILE>
+
+Example:
+  node deploy.js --stage dev --profile myawsprofile
+
+==================================================
+4) BACKEND ONLY DEPLOY
+==================================================
+From workspace root: BGV_Final
+
+Command:
+  node deploy.js --stage <dev|prod> --profile <AWS_PROFILE> --backend-only
+
+Example:
+  node deploy.js --stage prod --profile myawsprofile --backend-only
+
+==================================================
+5) FAST DEPLOY (skip build)
+==================================================
+Use only when backend jar and CDK build are already fresh.
+
+Command:
+  node deploy.js --stage <dev|prod> --profile <AWS_PROFILE> --skip-build
+
+==================================================
+6) MANUAL BACKEND DEPLOY (if needed)
+==================================================
+From workspace root: BGV_Final
+
+  call scripts\deploy-backend.cmd <dev|prod> <AWS_PROFILE>
+
+Example:
+  call scripts\deploy-backend.cmd dev myawsprofile
+
+==================================================
+7) POST-DEPLOY QUICK CHECKS
+==================================================
+1. Get stack outputs:
+   aws cloudformation describe-stacks --stack-name BgvServerlessDevStack --profile <AWS_PROFILE> --query "Stacks[0].Outputs" --output table
+
+2. Validate API is reachable using the API URL from outputs.
+
+3. Open CloudFront URL from outputs and verify frontend loads.
+
+4. Check Lambda logs if required:
+  aws logs tail /aws/lambda/bgv-api-dev --follow --profile <AWS_PROFILE>
+
+==================================================
+8) CURRENT IMPLEMENTATION NOTES
+==================================================
+- Runtime: Java 21 Lambdas
+- Lambda source: backend/src/main/java/com/bgv/application/lambda/
+- Jar used by CDK: Paramount_Project/backend/target/bgv-lambda.jar
+- API entrypoint: com.bgv.application.lambda.StreamLambdaHandler::handleRequest
+- TypeScript Lambda handlers have been removed (no longer part of deployment)
+
+==================================================
+9) COMMON FAILURES
+==================================================
+1. Maven build fails:
+   - Run in backend folder: mvn clean package -DskipTests
+
+2. AWS profile invalid:
+   - aws configure --profile <AWS_PROFILE>
+   - aws sts get-caller-identity --profile <AWS_PROFILE>
+
+3. Validation fails on Java version:
+  - Java 21 is required by deployment preflight
+  - Check with: java -version
+
+4. CDK deploy fails:
+   - cd Paramount_Project/infrastructure/cdk
+   - npm install
+   - npm run build
+   - npx cdk synth
+
+5. Production deploy blocked by security checks:
+  - Ensure cdk.json has real values for:
+    - context.prod.frontendDomain (must not be *)
+    - context.prod.cognitoUserPoolArn
+
+6. SharePoint behavior mismatch:
+   - Ensure cdk.json has expected values for:
+     - context.<stage>.sharepointFolderUrl
+     - context.<stage>.sharepointEnabled
+
+7. No alarm emails received:
+  - Set context.<stage>.alarmEmail in cdk.json and redeploy
+  - Confirm SNS email subscription from inbox
+
+8. Billing alarm not moving:
+  - EstimatedCharges metric is in us-east-1 namespace
+  - This stack creates billing alarm against AWS/Billing in us-east-1
+
+Primary recommended deployment command:
+  node deploy.js --stage dev --profile <AWS_PROFILE> --firstDeploy

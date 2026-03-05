@@ -1,0 +1,204 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  STAGE: prod
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      api-base-url: ${{ steps.cdk-deploy.outputs.api-base-url }}
+      cloudfront-domain: ${{ steps.cdk-deploy.outputs.cloudfront-domain }}
+      cloudfront-distribution-id: ${{ steps.cdk-deploy.outputs.cloudfront-distribution-id }}
+      frontend-bucket-name: ${{ steps.cdk-deploy.outputs.frontend-bucket-name }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: Paramount_Project/infrastructure/cdk/package-lock.json
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install CDK dependencies
+      working-directory: Paramount_Project/infrastructure/cdk
+      run: npm ci
+
+    - name: Build backend Lambda JAR
+      working-directory: Paramount_Project/backend
+      run: mvn -DskipTests package
+
+    - name: Build CDK
+      working-directory: Paramount_Project/infrastructure/cdk
+      run: npm run build
+
+    - name: Deploy production infrastructure
+      id: cdk-deploy
+      working-directory: Paramount_Project/infrastructure/cdk
+      run: |
+        npx cdk deploy BgvServerlessProdStack --require-approval never --outputs-file outputs.json
+        
+        # Extract outputs
+        API_BASE_URL=$(jq -r '.BgvServerlessProdStack.ApiBaseUrl // empty' outputs.json)
+        CF_DOMAIN=$(jq -r '.BgvServerlessProdStack.CloudFrontDomainName // empty' outputs.json)
+        CF_DISTRIBUTION_ID=$(jq -r '.BgvServerlessProdStack.CloudFrontDistributionId // empty' outputs.json)
+        FRONTEND_BUCKET_NAME=$(jq -r '.BgvServerlessProdStack.FrontendBucketName // empty' outputs.json)
+        
+        echo "api-base-url=$API_BASE_URL" >> $GITHUB_OUTPUT
+        echo "cloudfront-domain=$CF_DOMAIN" >> $GITHUB_OUTPUT
+        echo "cloudfront-distribution-id=$CF_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+        echo "frontend-bucket-name=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
+
+  deploy-backend:
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Build backend
+      working-directory: Paramount_Project/backend
+      run: mvn clean package -DskipTests
+
+    - name: Deploy Lambda function
+      working-directory: Paramount_Project/backend
+      run: |
+        LAMBDA_NAME="bgv-api-prod"
+        JAR_FILE=$(ls target/*.jar | head -1)
+        
+        aws lambda update-function-code \
+          --function-name $LAMBDA_NAME \
+          --zip-file fileb://$JAR_FILE \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Wait for Lambda update
+      run: |
+        LAMBDA_NAME="bgv-api-prod"
+        aws lambda wait function-updated \
+          --function-name $LAMBDA_NAME \
+          --region ${{ env.AWS_REGION }}
+
+  deploy-frontend:
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: Paramount_Project/frontend/package-lock.json
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install dependencies
+      working-directory: Paramount_Project/frontend
+      run: npm ci
+
+    - name: Build frontend with API URL
+      working-directory: Paramount_Project/frontend
+      run: |
+        API_BASE_URL="${{ needs.deploy-infrastructure.outputs.api-base-url }}"
+        VITE_API_BASE="${API_BASE_URL%/api/bgv-requests}" npm run build
+
+    - name: Deploy to S3
+      working-directory: Paramount_Project/frontend
+      run: |
+        S3_BUCKET="${{ needs.deploy-infrastructure.outputs.frontend-bucket-name }}"
+        aws s3 sync dist/ s3://$S3_BUCKET/ --delete
+
+    - name: Invalidate CloudFront cache
+      run: |
+        CF_DISTRIBUTION_ID="${{ needs.deploy-infrastructure.outputs.cloudfront-distribution-id }}"
+        
+        if [ -n "$CF_DISTRIBUTION_ID" ]; then
+          aws cloudfront create-invalidation \
+            --distribution-id $CF_DISTRIBUTION_ID \
+            --paths "/*"
+        fi
+
+  create-release:
+    needs: [deploy-infrastructure, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+
+  notify:
+    needs: [deploy-infrastructure, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Deployment summary
+      run: |
+        echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **API Base URL**: ${{ needs.deploy-infrastructure.outputs.api-base-url }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **CloudFront Domain**: ${{ needs.deploy-infrastructure.outputs.cloudfront-domain }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Stage**: ${{ env.STAGE }}" >> $GITHUB_STEP_SUMMARY
