@@ -1,6 +1,13 @@
 # BGV Request Management System
 
-A comprehensive Background Verification (BGV) Request Management System built with Java Spring Boot backend and React + Vite frontend.
+A comprehensive Background Verification (BGV) Request Management System built with **Java Spring Boot** backend and **React + Vite** frontend, using **AWS DynamoDB** for data persistence.
+
+## Architecture
+
+- **Backend**: Plain Java Spring Boot REST API (Port 8080)
+- **Frontend**: React with Vite
+- **Database**: AWS DynamoDB
+- **Deployment**: Standard Spring Boot deployment (no Lambda)
 
 ## Project Structure
 
@@ -67,6 +74,8 @@ bgv-application/
 - Java 21
 - Maven 3.6+
 - Spring Boot 3.1.5
+- AWS Account with DynamoDB access
+- AWS CLI configured
 
 ### Installation:
 
@@ -75,22 +84,43 @@ bgv-application/
 cd backend
 ```
 
-2. Build the project:
+2. Configure AWS credentials:
 ```bash
-mvn clean install
+aws configure
 ```
 
-3. Run the application:
+3. Update `src/main/resources/application.properties` with your settings:
+   - AWS region
+   - DynamoDB table names
+   - CORS allowed origins
+
+4. Build the project:
+```bash
+mvn clean package
+```
+
+5. Run the application:
 ```bash
 mvn spring-boot:run
+```
+
+Or run the built JAR:
+```bash
+java -jar target/bgv-service.jar
 ```
 
 The backend will start on `http://localhost:8080`
 
 ### Database:
-- Uses H2 in-memory database for development
-- Database console available at `http://localhost:8080/h2-console`
-- JDBC URL: `jdbc:h2:mem:testdb`
+- Uses **AWS DynamoDB** for data persistence
+- Tables are automatically created on first run
+- DynamoDB tables:
+  - `LTM-mne-paramount-BgvRequests`
+  - `LTM-mne-paramount-BgvRequestHistory`
+  - `LTM-mne-paramount-BgvExcelUploadRecords`
+  - `LTM-mne-paramount-BgvExcelUploadCells`
+
+For detailed deployment instructions, see [SPRING_BOOT_DEPLOYMENT.md](backend/SPRING_BOOT_DEPLOYMENT.md)
 
 ## Frontend Setup
 
