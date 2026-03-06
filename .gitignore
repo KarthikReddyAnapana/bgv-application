@@ -26,3 +26,5 @@ target/
 # Local runtime artifacts
 uploads/
 **/uploads/
+
+readme.md
