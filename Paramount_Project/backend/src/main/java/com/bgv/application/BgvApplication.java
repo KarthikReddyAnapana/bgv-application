@@ -39,7 +39,7 @@ public class BgvApplication extends SpringBootServletInitializer {
 
                 registry.addMapping("/**")
                     .allowedOriginPatterns(origins.length == 0 ? new String[]{"http://localhost:5173"} : origins)
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
             }

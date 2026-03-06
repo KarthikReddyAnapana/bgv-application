@@ -17,7 +17,7 @@ export default function AdminForm() {
   const [bulkStatus, setBulkStatus] = useState(''); // Bulk status change
   const [searchTerm, setSearchTerm] = useState(''); // Search filter
   const [filterStatus, setFilterStatus] = useState(''); // Status filter
-  const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+  const apiBase = import.meta.env.VITE_API_BASE || 'https://uyzsjec2hb.execute-api.us-east-2.amazonaws.com/bgv-service';
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
