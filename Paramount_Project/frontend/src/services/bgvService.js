@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_ORIGIN = import.meta.env.VITE_API_BASE || 'https://uyzsjec2hb.execute-api.us-east-2.amazonaws.com/bgv-service/api/bgv-requests';
+export const API_ORIGIN = import.meta.env.VITE_API_BASE || 'https://uyzsjec2hb.execute-api.us-east-2.amazonaws.com/bgv-service';
 export const API_BASE_URL = `${API_ORIGIN}/api/bgv-requests`;
 
 export const bgvService = {
