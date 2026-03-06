@@ -18,7 +18,7 @@ export default function SuperAdmin() {
   const [historySearchType, setHistorySearchType] = useState('resourcePsNo');
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailRequest, setDetailRequest] = useState(null);
-  const apiBase = import.meta.env.VITE_API_BASE || 'https://uyzsjec2hb.execute-api.us-east-2.amazonaws.com/bgv-service';
+  const apiBase = import.meta.env.VITE_API_BASE || 'https://uyzsjec2hb.execute-api.us-east-2.amazonaws.com/bgv-service/api/bgv-requests';
 
   useEffect(() => {
     fetchRequests();
