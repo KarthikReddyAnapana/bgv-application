@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_ORIGIN = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+export const API_ORIGIN = import.meta.env.VITE_API_BASE || 'http://10.197.38.36:8080/bgv-service';
 export const API_BASE_URL = `${API_ORIGIN}/api/bgv-requests`;
 
 export const bgvService = {

@@ -3,6 +3,8 @@ package com.bgv.application;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -11,10 +13,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.Arrays;
 
 @SpringBootApplication
-public class BgvApplication {
+public class BgvApplication extends SpringBootServletInitializer {
 
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
     private String allowedOrigins;
+
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        return application.sources(BgvApplication.class);
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(BgvApplication.class, args);
