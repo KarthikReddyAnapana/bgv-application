@@ -24,8 +24,7 @@ import org.springframework.http.HttpHeaders;
 
 @CrossOrigin(
     origins = "https://d9wsu3rsp7svw.cloudfront.net",
-    methods = {RequestMethod.GET, RequestMethod.POST}
-)
+    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH, RequestMethod.OPTIONS})
 @RestController
 @RequestMapping("/api/bgv-requests")
 public class BgvRequestController {
