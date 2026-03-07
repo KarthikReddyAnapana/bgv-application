@@ -389,3 +389,23 @@ bgv.country.georegion.mapping=INDIA:INDIA,UK:EUROPE,GERMANY:EUROPE,FRANCE:EUROPE
 ## License
 
 This project is for internal use at MnE.
+
+---------------------------------------------------------------------
+##Important notes (Author - Anapana Karthik Reddy)
+
+What you need to know about the application - It is a use case highly made from the perspective of being able to keep track of the many bgv requests made by the project manager, their status, the admin to accept them or reject them based on various conditions, and for the super admin to see overall process of how many requests of which project manager are pending, data export to excel.
+
+So, its basically a three role based access, right now the authentication is only the correct entering of your PS Number(assuming you are a project manager accessing this application), then the basic details can be filled overall in the pm submit request page. There is another feature express request, where the evidence needs to be uploaded, preferably an email pdf, The sharepoint integration is not done yet.
+
+
+---------------------------------------------------------------------------------PROBLEMS FACED DURING DEPLOYMENT --
+
+Deployment method followed is the ec2 for tomcat/backend through the war file, s3+cloudfront for frontend(react), dynamodb for the database. Cors policy was one of the major problems faced.
+
+SOLUTION - solving cache error for the cors, enforcing cloudfront link everywhere, rechecking the s3 location(just in case), and reuploading the dist contents in the region where backend is, also CLOUDFRONT - INVALIDATION - /*, this has to be done without fail.
+
+
+Mostly based on Ohio region (us-east-2). 
+
+
+An alternative approach could have been using the docker image, docker compose, which would have been way more easier, but due to constraints could not be fulfilled.
