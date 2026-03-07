@@ -15,7 +15,7 @@ import java.util.Arrays;
 @SpringBootApplication
 public class BgvApplication extends SpringBootServletInitializer {
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
+    @Value("${app.cors.allowed-origins:https://d9wsu3rsp7svw.cloudfront.net}")
     private String allowedOrigins;
 
     @Override
@@ -38,7 +38,7 @@ public class BgvApplication extends SpringBootServletInitializer {
                     .toArray(String[]::new);
 
                 registry.addMapping("/**")
-                    .allowedOriginPatterns(origins.length == 0 ? new String[]{"http://localhost:5173"} : origins)
+                    .allowedOriginPatterns(origins.length == 0 ? new String[]{"https://d9wsu3rsp7svw.cloudfront.net"} : origins)
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
